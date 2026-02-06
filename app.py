@@ -2,13 +2,14 @@ import streamlit as st
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 
-# --- PUT YOUR KEY HERE ---
-# Paste your API key inside the quotes below
+# --- CONFIGURATION ---
 api_key = st.secrets["GOOGLE_API_KEY"]
 
-# This connects to Google
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('models/gemini-1.5-flash-001')
+# We add 'transport="rest"' to fix connection issues
+genai.configure(api_key=api_key, transport="rest") 
+
+# Use the simple Flash name
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # This function reads the PDF file
 def get_pdf_text(pdf_docs):
@@ -65,7 +66,8 @@ if user_question:
         """
         
         with st.spinner("Thinking..."):
-            response = model.generate_content(prompt)
+            response = model.generate_content(prompt, generation_config={"temperature": 0})
 
             st.write(response.text)
+
 
