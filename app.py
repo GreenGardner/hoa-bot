@@ -73,14 +73,15 @@ if user_question:
             try:
                 # We use the model found in your diagnostic script
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash", 
-                    contents=prompt
-                )
+    model="gemini-1.5-flash", 
+    contents=prompt
+)
                 st.success(response.text)
             except Exception as e:
                 st.error(f"Error: {e}")
 
 st.markdown("---")
 st.caption("Powered by Gemini 2.0 Flash")
+
 
 
