@@ -1,74 +1,86 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from PyPDF2 import PdfReader
 
 # --- CONFIGURATION ---
+# We get the key from the secret vault
 api_key = st.secrets["GOOGLE_API_KEY"]
 
-# We add 'transport="rest"' to fix connection issues
-genai.configure(api_key=api_key, transport="rest") 
+# NEW: We use the 'Client' method for the new SDK
+client = genai.Client(api_key=api_key)
 
-# Use the simple Flash name
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
-
-# This function reads the PDF file
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text += page.extract_text()
+            if page.extract_text():
+                text += page.extract_text() + "\n"
     return text
 
-# --- THIS IS THE WEBSITE PART ---
-st.set_page_config(page_title="HOA Helper", layout="wide")
+# --- THE APP UI ---
+st.set_page_config(page_title="HOA Bylaw Search", layout="wide")
 
-st.title("🏡 HOA Document Search")
-st.write("Upload your PDF rules (CC&Rs, Bylaws) and ask questions.")
+st.title("🏡 HOA Document Search Engine")
+st.subheader("Upload your CC&Rs, Bylaws, and Meeting Minutes. Ask anything.")
 
-# The Sidebar (Left side of screen)
+# Sidebar
 with st.sidebar:
-    st.header("1. Upload Docs")
+    st.header("Your Documents")
     uploaded_files = st.file_uploader(
-        "Choose PDF files", accept_multiple_files=True, type="pdf"
+        "Upload PDF Files", accept_multiple_files=True, type="pdf"
     )
-    process_button = st.button("Read Documents")
+    process_button = st.button("Analyze Documents")
 
-# The Memory (Remembering what we uploaded)
+# State Management
 if "pdf_content" not in st.session_state:
     st.session_state.pdf_content = ""
 
-# What happens when you click "Read Documents"
+# Processing
 if process_button and uploaded_files:
-    with st.spinner("Reading... please wait..."):
-        # Extract text from PDF
+    with st.spinner("Reading your HOA documents..."):
         raw_text = get_pdf_text(uploaded_files)
         st.session_state.pdf_content = raw_text
-        st.success("Done! I have read the files.")
+        st.success("Documents Loaded! You can now search.")
 
-# The Chat Box
-user_question = st.text_input("2. Ask a question (e.g., Can I paint my fence blue?)")
+# Chat Logic
+user_question = st.text_input("Ask a question about the rules (e.g., 'Can I paint my fence blue?')")
 
 if user_question:
-    if st.session_state.pdf_content == "":
-        st.error("Please upload a PDF first!")
+    if not st.session_state.pdf_content:
+        st.warning("Please upload documents first!")
     else:
-        # This sends your question + the PDF text to Gemini
+        # Display User Message
+        st.info(f"You asked: {user_question}")
+        
+        # The Prompt
         prompt = f"""
-        You are a helpful assistant for a Homeowners Association (HOA).
-        Answer the question based ONLY on the text below.
-        If the answer is found, quote the rule number.
+        You are an expert HOA attorney assistant. 
+        Answer the question based STRICTLY on the text provided below.
         
-        QUESTION: {user_question}
+        Rules:
+        1. Quote the specific Article or Section number.
+        2. If the answer is not in the text, say "I cannot find a rule about that."
         
-        DOCUMENT TEXT:
+        USER QUESTION: {user_question}
+        
+        HOA DOCUMENTS TEXT:
         {st.session_state.pdf_content}
         """
         
-        with st.spinner("Thinking..."):
-            response = model.generate_content(prompt, generation_config={"temperature": 0})
+        # Generate Answer using the NEW method
+        with st.spinner("Searching the bylaws..."):
+            try:
+                # We use the model found in your diagnostic script
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash", 
+                    contents=prompt
+                )
+                st.success(response.text)
+            except Exception as e:
+                st.error(f"Error: {e}")
 
-            st.write(response.text)
-
+st.markdown("---")
+st.caption("Powered by Gemini 2.0 Flash")
 
 
