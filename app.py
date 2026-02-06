@@ -8,7 +8,7 @@ api_key = st.secrets["GOOGLE_API_KEY"]
 
 # This connects to Google
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # This function reads the PDF file
 def get_pdf_text(pdf_docs):
@@ -66,4 +66,5 @@ if user_question:
         
         with st.spinner("Thinking..."):
             response = model.generate_content(prompt)
+
             st.write(response.text)
