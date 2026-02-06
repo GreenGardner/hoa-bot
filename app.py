@@ -73,7 +73,7 @@ if user_question:
             try:
                 # We use the model found in your diagnostic script
                 response = client.models.generate_content(
-    model="gemini-1.5-flash", 
+    model="gemini-flash-latest", 
     contents=prompt
 )
                 st.success(response.text)
@@ -82,6 +82,7 @@ if user_question:
 
 st.markdown("---")
 st.caption("Powered by Gemini 2.0 Flash")
+
 
 
 
